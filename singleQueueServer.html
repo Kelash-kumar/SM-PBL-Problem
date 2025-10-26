@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Single Server Queue Simulation</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------- Theme Styling ---------- */
+html, body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.5s ease, color 0.5s ease;
+}
+h1 { text-align: center; font-weight: 600; margin-top: 1rem; }
+.header {
+    text-align: center;
+    padding: 2rem 1rem;
+    border-radius: 14px;
+    color: white;
+    background: linear-gradient(270deg, #667eea, #764ba2);
+    background-size: 400% 400%;
+    animation: gradient 6s ease infinite;
+}
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.container {
+    max-width: 950px;
+    margin: 2rem auto;
+    background: var(--block-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.1);
+}
+.metric-box {
+    background: var(--metric-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.metric-box b { color: var(--primary); }
+.metric-box span { font-size: 1.2rem; font-weight: 600; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+[data-theme="light"] {
+    --bg: #f9fafc;
+    --text: #222;
+    --primary: #3366ff;
+    --block-bg: #ffffff;
+    --metric-bg: #f6f8ff;
+    --border: #e3e3e3;
+}
+[data-theme="dark"] {
+    --bg: #0e1117;
+    --text: #e8e8e8;
+    --primary: #5ca1ff;
+    --block-bg: #1a1e25;
+    --metric-bg: #232833;
+    --border: #333;
+}
+
+input, button, select {
+    font-family: inherit;
+    border: 1px solid var(--border);
+    padding: 0.5rem;
+    border-radius: 6px;
+    width: 100%;
+}
+button {
+    background: var(--primary);
+    color: white;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+button:hover { opacity: 0.9; }
+.grid { display: flex; gap: 1rem; flex-wrap: wrap; }
+.grid > div { flex: 1; min-width: 180px; }
+.table-container { overflow-x: auto; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+table th, table td {
+    padding: 8px;
+    border: 1px solid var(--border);
+    text-align: center;
+}
+.theme-toggle { text-align: center; margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<div class="theme-toggle">
+    <label>Theme: </label>
+    <select id="themeSelect">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</div>
+
+<div class="header">
+    <h1>Single Server Queue Simulation</h1>
+    <p style="font-size:1rem;opacity:0.9;">A discrete-event simulation of queue systems using exponential interarrival and service rates.</p>
+</div>
+
+<div class="container">
+    <h2>Simulation Parameters</h2>
+    <div class="grid">
+        <div><label>Arrival Rate (λ)</label><input type="number" id="lambda" step="0.1" value="1.0" min="0.1"></div>
+        <div><label>Service Rate (μ)</label><input type="number" id="mu" step="0.1" value="2.5" min="0.1"></div>
+        <div><label>Number of Customers</label><input type="number" id="n" step="1" value="20" min="5"></div>
+    </div>
+    <hr>
+    <button id="runBtn">Run Simulation</button>
+
+    <div id="results" style="display:none;">
+        <hr>
+        <h2>Summary Statistics</h2>
+        <div class="grid" id="metrics"></div>
+        <hr>
+        <h2>Detailed Results</h2>
+        <div class="table-container"><table id="resultTable"></table></div>
+        <hr>
+        <h2>Visualization</h2>
+        <canvas id="waitingChart" height="150"></canvas>
+        <br>
+        <canvas id="systemChart" height="150"></canvas>
+    </div>
+</div>
+
+<script>
+    
+function exponential(rate) {
+    let r = Math.random();
+    return -Math.log(1 - r) / rate;
+}
+
+function simulateQueue(lambda, mu, n) {
+    let interarrival = Array.from({length: n}, () => exponential(lambda));
+    let service = Array.from({length: n}, () => exponential(mu));
+    let arrival = [interarrival[0]];
+    for (let i = 1; i < n; i++) arrival.push(arrival[i-1] + interarrival[i]);
+
+    let start = [], depart = [], wait = [], syst = [];
+    start[0] = arrival[0];
+    depart[0] = start[0] + service[0];
+    wait[0] = 0;
+    syst[0] = service[0];
+
+    for (let i = 1; i < n; i++) {
+        start[i] = Math.max(arrival[i], depart[i-1]);
+        wait[i] = start[i] - arrival[i];
+        depart[i] = start[i] + service[i];
+        syst[i] = depart[i] - arrival[i];
+    }
+
+    let avgWait = wait.reduce((a,b)=>a+b,0)/n;
+    let avgServ = service.reduce((a,b)=>a+b,0)/n;
+    let avgSys = syst.reduce((a,b)=>a+b,0)/n;
+    let util = lambda / mu;
+    let total = depart[depart.length-1];
+
+    return { arrival, start, service, depart, wait, syst, avgWait, avgServ, avgSys, util, total };
+}
+
+document.getElementById("runBtn").addEventListener("click", ()=>{
+    let lambda = parseFloat(document.getElementById("lambda").value);
+    let mu = parseFloat(document.getElementById("mu").value);
+    let n = parseInt(document.getElementById("n").value);
+
+    let sim = simulateQueue(lambda, mu, n);
+    document.getElementById("results").style.display = "block";
+
+    // Display metrics
+    const metrics = `
+        <div class='metric-box'><b>Avg Waiting</b><br><span>${sim.avgWait.toFixed(3)}</span></div>
+        <div class='metric-box'><b>Avg Service</b><br><span>${sim.avgServ.toFixed(3)}</span></div>
+        <div class='metric-box'><b>Avg System</b><br><span>${sim.avgSys.toFixed(3)}</span></div>
+        <div class='metric-box'><b>Utilization</b><br><span>${sim.util.toFixed(3)}</span></div>
+        <div class='metric-box'><b>Total Time</b><br><span>${sim.total.toFixed(3)}</span></div>
+    `;
+    document.getElementById("metrics").innerHTML = metrics;
+
+    // Display table
+    let tableHTML = "<tr><th>Customer</th><th>Arrival Time</th><th>Service Start</th><th>Service Time</th><th>Departure Time</th><th>Waiting Time</th><th>System Time</th></tr>";
+    for (let i=0; i<n; i++) {
+        tableHTML += `<tr>
+            <td>${i+1}</td>
+            <td>${sim.arrival[i].toFixed(3)}</td>
+            <td>${sim.start[i].toFixed(3)}</td>
+            <td>${sim.service[i].toFixed(3)}</td>
+            <td>${sim.depart[i].toFixed(3)}</td>
+            <td>${sim.wait[i].toFixed(3)}</td>
+            <td>${sim.syst[i].toFixed(3)}</td>
+        </tr>`;
+    }
+    document.getElementById("resultTable").innerHTML = tableHTML;
+
+    // Charts
+    const customers = Array.from({length: n}, (_,i)=>i+1);
+
+    new Chart(document.getElementById("waitingChart"), {
+        type: 'line',
+        data: {
+            labels: customers,
+            datasets: [{
+                label: 'Waiting Time',
+                data: sim.wait,
+                borderColor: '#3366ff',
+                fill: false,
+                tension: 0.3
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById("systemChart"), {
+        type: 'line',
+        data: {
+            labels: customers,
+            datasets: [{
+                label: 'System Time',
+                data: sim.syst,
+                borderColor: '#764ba2',
+                backgroundColor: 'rgba(118,75,162,0.3)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+});
+
+// Theme toggle
+document.getElementById("themeSelect").addEventListener("change", function(){
+    document.documentElement.setAttribute("data-theme", this.value);
+});
+</script>
+
+</body>
+</html>
