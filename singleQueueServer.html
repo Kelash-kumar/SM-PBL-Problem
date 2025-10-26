@@ -5,141 +5,370 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Single Server Queue Simulation</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ---------- Theme Styling ---------- */
+* { box-sizing: border-box; }
+
 html, body {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Inter', sans-serif;
     margin: 0; padding: 0;
     background: var(--bg);
     color: var(--text);
-    transition: background 0.5s ease, color 0.5s ease;
+    transition: background 0.3s ease, color 0.3s ease;
 }
-h1 { text-align: center; font-weight: 600; margin-top: 1rem; }
-.header {
-    text-align: center;
-    padding: 2rem 1rem;
-    border-radius: 14px;
-    color: white;
-    background: linear-gradient(270deg, #667eea, #764ba2);
-    background-size: 400% 400%;
-    animation: gradient 6s ease infinite;
-}
-@keyframes gradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-.container {
-    max-width: 950px;
-    margin: 2rem auto;
-    background: var(--block-bg);
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 6px 25px rgba(0,0,0,0.1);
-}
-.metric-box {
-    background: var(--metric-bg);
-    padding: 1rem;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-.metric-box b { color: var(--primary); }
-.metric-box span { font-size: 1.2rem; font-weight: 600; }
-hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
 
 [data-theme="light"] {
-    --bg: #f9fafc;
-    --text: #222;
-    --primary: #3366ff;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --secondary: #8b5cf6;
+    --accent: #06b6d4;
+    --success: #10b981;
     --block-bg: #ffffff;
-    --metric-bg: #f6f8ff;
-    --border: #e3e3e3;
-}
-[data-theme="dark"] {
-    --bg: #0e1117;
-    --text: #e8e8e8;
-    --primary: #5ca1ff;
-    --block-bg: #1a1e25;
-    --metric-bg: #232833;
-    --border: #333;
+    --metric-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --metric-bg-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --metric-bg-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --metric-bg-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    --metric-bg-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --border: #e2e8f0;
+    --shadow: rgba(0, 0, 0, 0.1);
 }
 
-input, button, select {
-    font-family: inherit;
-    border: 1px solid var(--border);
-    padding: 0.5rem;
-    border-radius: 6px;
-    width: 100%;
+[data-theme="dark"] {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --primary: #818cf8;
+    --primary-hover: #6366f1;
+    --secondary: #a78bfa;
+    --accent: #22d3ee;
+    --success: #34d399;
+    --block-bg: #1e293b;
+    --metric-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --metric-bg-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --metric-bg-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --metric-bg-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    --metric-bg-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --border: #334155;
+    --shadow: rgba(0, 0, 0, 0.3);
 }
-button {
-    background: var(--primary);
+
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: 0.3s;
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
 }
-button:hover { opacity: 0.9; }
-.grid { display: flex; gap: 1rem; flex-wrap: wrap; }
-.grid > div { flex: 1; min-width: 180px; }
-.table-container { overflow-x: auto; }
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>');
+    opacity: 0.3;
+}
+
+.header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+}
+
+.header p {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.95;
+    position: relative;
+    z-index: 1;
+}
+
+.theme-toggle {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+}
+
+.theme-toggle select {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+.theme-toggle select option {
+    background: var(--block-bg);
+    color: var(--text);
+}
+
+.container {
+    max-width: 1100px;
+    margin: -2rem auto 2rem;
+    background: var(--block-bg);
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px var(--shadow);
+    position: relative;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 1.5rem 0;
+    color: var(--text);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.input-group label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    opacity: 0.9;
+}
+
+.input-group input {
+    font-family: inherit;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+button {
+    font-family: inherit;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.metric-box {
+    background: var(--metric-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-box:nth-child(2) { background: var(--metric-bg-2); }
+.metric-box:nth-child(3) { background: var(--metric-bg-3); }
+.metric-box:nth-child(4) { background: var(--metric-bg-4); }
+.metric-box:nth-child(5) { background: var(--metric-bg-5); }
+
+.metric-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent);
+}
+
+.metric-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.95;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+    position: relative;
+}
+
+hr {
+    border: 0;
+    border-top: 2px solid var(--border);
+    margin: 2.5rem 0;
+}
+
+.table-container {
+    overflow-x: auto;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px var(--shadow);
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1rem;
+    background: var(--bg);
 }
-table th, table td {
-    padding: 8px;
-    border: 1px solid var(--border);
+
+table th {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    padding: 1rem;
+    font-weight: 600;
     text-align: center;
+    font-size: 0.9rem;
 }
-.theme-toggle { text-align: center; margin-top: 1rem; }
+
+table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    color: var(--text);
+}
+
+table tr:last-child td {
+    border-bottom: none;
+}
+
+table tr:hover td {
+    background: var(--border);
+}
+
+.chart-container {
+    background: var(--bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px var(--shadow);
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+#results {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .header h1 { font-size: 1.8rem; }
+    .container { padding: 1.5rem; margin: -1rem 1rem 1rem; }
+    .metric-value { font-size: 1.5rem; }
+}
 </style>
 </head>
 <body>
 
-<div class="theme-toggle">
-    <label>Theme: </label>
-    <select id="themeSelect">
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-    </select>
-</div>
-
 <div class="header">
+    <div class="theme-toggle">
+        <select id="themeSelect">
+            <option value="light">☀️ Light</option>
+            <option value="dark">🌙 Dark</option>
+        </select>
+    </div>
     <h1>Single Server Queue Simulation</h1>
-    <p style="font-size:1rem;opacity:0.9;">A discrete-event simulation of queue systems using exponential interarrival and service rates.</p>
+    <p>Discrete-event simulation using exponential interarrival and service distributions</p>
 </div>
 
 <div class="container">
-    <h2>Simulation Parameters</h2>
+    <h2>📊 Simulation Parameters</h2>
     <div class="grid">
-        <div><label>Arrival Rate (λ)</label><input type="number" id="lambda" step="0.1" value="1.0" min="0.1"></div>
-        <div><label>Service Rate (μ)</label><input type="number" id="mu" step="0.1" value="2.5" min="0.1"></div>
-        <div><label>Number of Customers</label><input type="number" id="n" step="1" value="20" min="5"></div>
+        <div class="input-group">
+            <label>Arrival Rate (λ)</label>
+            <input type="number" id="lambda" step="0.1" value="1.0" min="0.1">
+        </div>
+        <div class="input-group">
+            <label>Service Rate (μ)</label>
+            <input type="number" id="mu" step="0.1" value="2.5" min="0.1">
+        </div>
+        <div class="input-group">
+            <label>Number of Customers</label>
+            <input type="number" id="n" step="1" value="20" min="5">
+        </div>
     </div>
-    <hr>
     <button id="runBtn">Run Simulation</button>
 
     <div id="results" style="display:none;">
         <hr>
-        <h2>Summary Statistics</h2>
-        <div class="grid" id="metrics"></div>
+        <h2>📈 Summary Statistics</h2>
+        <div class="metrics-grid" id="metrics"></div>
+        
         <hr>
-        <h2>Detailed Results</h2>
-        <div class="table-container"><table id="resultTable"></table></div>
+        <h2>📉 Performance Charts</h2>
+        <div class="chart-container">
+            <div class="chart-title">Waiting Time per Customer</div>
+            <canvas id="waitingChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title">System Time per Customer</div>
+            <canvas id="systemChart"></canvas>
+        </div>
+        
         <hr>
-        <h2>Visualization</h2>
-        <canvas id="waitingChart" height="150"></canvas>
-        <br>
-        <canvas id="systemChart" height="150"></canvas>
+        <h2>📋 Detailed Results</h2>
+        <div class="table-container">
+            <table id="resultTable"></table>
+        </div>
     </div>
 </div>
 
 <script>
-    
+let waitingChartInstance = null;
+let systemChartInstance = null;
+
 function exponential(rate) {
     let r = Math.random();
     return -Math.log(1 - r) / rate;
@@ -173,6 +402,17 @@ function simulateQueue(lambda, mu, n) {
     return { arrival, start, service, depart, wait, syst, avgWait, avgServ, avgSys, util, total };
 }
 
+function destroyCharts() {
+    if (waitingChartInstance) {
+        waitingChartInstance.destroy();
+        waitingChartInstance = null;
+    }
+    if (systemChartInstance) {
+        systemChartInstance.destroy();
+        systemChartInstance = null;
+    }
+}
+
 document.getElementById("runBtn").addEventListener("click", ()=>{
     let lambda = parseFloat(document.getElementById("lambda").value);
     let mu = parseFloat(document.getElementById("mu").value);
@@ -181,17 +421,30 @@ document.getElementById("runBtn").addEventListener("click", ()=>{
     let sim = simulateQueue(lambda, mu, n);
     document.getElementById("results").style.display = "block";
 
-    // Display metrics
     const metrics = `
-        <div class='metric-box'><b>Avg Waiting</b><br><span>${sim.avgWait.toFixed(3)}</span></div>
-        <div class='metric-box'><b>Avg Service</b><br><span>${sim.avgServ.toFixed(3)}</span></div>
-        <div class='metric-box'><b>Avg System</b><br><span>${sim.avgSys.toFixed(3)}</span></div>
-        <div class='metric-box'><b>Utilization</b><br><span>${sim.util.toFixed(3)}</span></div>
-        <div class='metric-box'><b>Total Time</b><br><span>${sim.total.toFixed(3)}</span></div>
+        <div class='metric-box'>
+            <div class='metric-label'>Avg Waiting</div>
+            <div class='metric-value'>${sim.avgWait.toFixed(3)}</div>
+        </div>
+        <div class='metric-box'>
+            <div class='metric-label'>Avg Service</div>
+            <div class='metric-value'>${sim.avgServ.toFixed(3)}</div>
+        </div>
+        <div class='metric-box'>
+            <div class='metric-label'>Avg System</div>
+            <div class='metric-value'>${sim.avgSys.toFixed(3)}</div>
+        </div>
+        <div class='metric-box'>
+            <div class='metric-label'>Utilization</div>
+            <div class='metric-value'>${sim.util.toFixed(3)}</div>
+        </div>
+        <div class='metric-box'>
+            <div class='metric-label'>Total Time</div>
+            <div class='metric-value'>${sim.total.toFixed(3)}</div>
+        </div>
     `;
     document.getElementById("metrics").innerHTML = metrics;
 
-    // Display table
     let tableHTML = "<tr><th>Customer</th><th>Arrival Time</th><th>Service Start</th><th>Service Time</th><th>Departure Time</th><th>Waiting Time</th><th>System Time</th></tr>";
     for (let i=0; i<n; i++) {
         tableHTML += `<tr>
@@ -206,44 +459,132 @@ document.getElementById("runBtn").addEventListener("click", ()=>{
     }
     document.getElementById("resultTable").innerHTML = tableHTML;
 
-    // Charts
-    const customers = Array.from({length: n}, (_,i)=>i+1);
+    destroyCharts();
 
-    new Chart(document.getElementById("waitingChart"), {
+    const customers = Array.from({length: n}, (_,i)=>i+1);
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+    const textColor = isDark ? '#e2e8f0' : '#1e293b';
+
+    waitingChartInstance = new Chart(document.getElementById("waitingChart"), {
         type: 'line',
         data: {
             labels: customers,
             datasets: [{
                 label: 'Waiting Time',
                 data: sim.wait,
-                borderColor: '#3366ff',
-                fill: false,
-                tension: 0.3
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#6366f1',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
             }]
         },
-        options: { responsive: true, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#6366f1',
+                    borderWidth: 2
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
+                },
+                y: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor },
+                    beginAtZero: true
+                }
+            }
+        }
     });
 
-    new Chart(document.getElementById("systemChart"), {
+    systemChartInstance = new Chart(document.getElementById("systemChart"), {
         type: 'line',
         data: {
             labels: customers,
             datasets: [{
                 label: 'System Time',
                 data: sim.syst,
-                borderColor: '#764ba2',
-                backgroundColor: 'rgba(118,75,162,0.3)',
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
                 fill: true,
-                tension: 0.3
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#8b5cf6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
             }]
         },
-        options: { responsive: true, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#8b5cf6',
+                    borderWidth: 2
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
+                },
+                y: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor },
+                    beginAtZero: true
+                }
+            }
+        }
     });
 });
 
-// Theme toggle
 document.getElementById("themeSelect").addEventListener("change", function(){
     document.documentElement.setAttribute("data-theme", this.value);
+    
+    if (waitingChartInstance || systemChartInstance) {
+        const isDark = this.value === 'dark';
+        const gridColor = isDark ? '#334155' : '#e2e8f0';
+        const textColor = isDark ? '#e2e8f0' : '#1e293b';
+        
+        if (waitingChartInstance) {
+            waitingChartInstance.options.scales.x.grid.color = gridColor;
+            waitingChartInstance.options.scales.x.ticks.color = textColor;
+            waitingChartInstance.options.scales.y.grid.color = gridColor;
+            waitingChartInstance.options.scales.y.ticks.color = textColor;
+            waitingChartInstance.update();
+        }
+        
+        if (systemChartInstance) {
+            systemChartInstance.options.scales.x.grid.color = gridColor;
+            systemChartInstance.options.scales.x.ticks.color = textColor;
+            systemChartInstance.options.scales.y.grid.color = gridColor;
+            systemChartInstance.options.scales.y.ticks.color = textColor;
+            systemChartInstance.update();
+        }
+    }
 });
 </script>
 
